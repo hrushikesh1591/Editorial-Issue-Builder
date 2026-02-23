@@ -12,6 +12,7 @@ export const processRawData = (rawData: any[]): Article[] => {
 
     const onlineFirstDate = cleanedRow.online_first_date;
     let formattedDate = 'N/A';
+    let onlineFirstTimestamp: number | undefined = undefined;
     
     if (onlineFirstDate) {
       let date: Date;
@@ -22,6 +23,7 @@ export const processRawData = (rawData: any[]): Article[] => {
       }
       if (!isNaN(date.getTime())) {
         formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        onlineFirstTimestamp = date.getTime();
       }
     }
 
@@ -32,6 +34,7 @@ export const processRawData = (rawData: any[]): Article[] => {
       id: `art-${index}-${Date.now()}`,
       fullAuthor,
       formattedDate,
+      onlineFirstTimestamp,
       selected: false,
       downloaded: false,
       topic: 'Uncategorized'
