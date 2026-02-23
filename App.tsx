@@ -78,7 +78,30 @@ const App: React.FC = () => {
       const rubricMatch = filters.rubrics.length === 0 || filters.rubrics.includes(article.rubric);
       const stateMatch = filters.productionStates.length === 0 || filters.productionStates.includes(article.production_state);
       const topicMatch = filters.topics.length === 0 || filters.topics.includes(article.topic);
-      return rubricMatch && stateMatch && topicMatch;
+      
+      let dateMatch = true;
+      if (filters.dateRange[0] || filters.dateRange[1]) {
+        if (!article.onlineFirstTimestamp) {
+          dateMatch = false;
+        } else {
+          const articleDate = new Date(article.onlineFirstTimestamp);
+          articleDate.setHours(0, 0, 0, 0);
+          
+          if (filters.dateRange[0]) {
+            const startDate = new Date(filters.dateRange[0]);
+            startDate.setHours(0, 0, 0, 0);
+            if (articleDate < startDate) dateMatch = false;
+          }
+          
+          if (filters.dateRange[1]) {
+            const endDate = new Date(filters.dateRange[1]);
+            endDate.setHours(23, 59, 59, 999);
+            if (articleDate > endDate) dateMatch = false;
+          }
+        }
+      }
+
+      return rubricMatch && stateMatch && topicMatch && dateMatch;
     });
   }, [articles, filters]);
 
