@@ -2,9 +2,26 @@ import { Article } from '../types';
 
 declare const XLSX: any;
 
+/* ============================= */
+/* 🔹 Proper Case Helper */
+/* ============================= */
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+/* ============================= */
+/* 🔹 Process Raw Excel Data */
+/* ============================= */
 export const processRawData = (rawData: any[]): Article[] => {
   return rawData.map((row, index) => {
     const cleanedRow: any = {};
+
     Object.keys(row).forEach(key => {
       const val = row[key];
       cleanedRow[key] = typeof val === 'string' ? val.trim() : val;
@@ -16,18 +33,26 @@ export const processRawData = (rawData: any[]): Article[] => {
     
     if (onlineFirstDate) {
       let date: Date;
+
       if (typeof onlineFirstDate === 'number') {
         date = new Date((onlineFirstDate - 25569) * 86400 * 1000);
       } else {
         date = new Date(onlineFirstDate);
       }
+
       if (!isNaN(date.getTime())) {
-        formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        formattedDate = date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
         onlineFirstTimestamp = date.getTime();
       }
     }
 
-    const fullAuthor = `${cleanedRow.author_given_name || ''} ${cleanedRow.Author_family_name || ''}`.trim() || 'Unknown Author';
+    const fullAuthor =
+      `${cleanedRow.author_given_name || ''} ${cleanedRow.Author_family_name || ''}`.trim()
+      || 'Unknown Author';
 
     return {
       ...cleanedRow,
@@ -42,22 +67,60 @@ export const processRawData = (rawData: any[]): Article[] => {
   });
 };
 
+/* ============================= */
+/* 🔹 Export Issue Plan (Selected Only) */
+/* ============================= */
 export const exportToExcel = (articles: Article[]) => {
-  // We exclude 'topic' here because it's for internal curation only
-  const exportData = articles.filter(a => a.selected).map(a => ({
+
+  const exportData = articles
+    .filter(a => a.selected)
+    .map(a => ({
+      'Author': a.fullAuthor,
+      'Title': a.article_title,
+      'Rubric': a.rubric || '',
+      'Status': a.production_state || '',
+      'Online First': a.formattedDate,
+      'DOI': a.doi,
+      'MS Number': a.editorial_ms_number || '',
+      'Pages': a.article_last_page || '',
+      'Notes': a.notes_on_issue_building || ''
+    }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Issue_Plan");
+
+  XLSX.writeFile(
+    workbook,
+    `Editorial_Plan_${new Date().toISOString().split('T')[0]}.xlsx`
+  );
+};
+
+/* ============================= */
+/* 🔹 Export Categorized Sheet (ALL Rows) */
+/* ============================= */
+export const exportCategorizedSheet = (articles: Article[]) => {
+
+  const exportData = articles.map(a => ({
     'Author': a.fullAuthor,
-    'Title': a.article_title,
-    'Rubric': a.rubric || '',
+    'Article Title': a.article_title || '',
+    'Surgical Topic': toTitleCase(a.topic || 'Uncategorized'),
+    'Rubric': toTitleCase(a.rubric || 'Uncategorized'),
     'Status': a.production_state || '',
-    'Online First': a.formattedDate,
-    'DOI': a.doi,
+    'Online First': a.formattedDate || '',
+    'DOI': a.doi || '',
     'MS Number': a.editorial_ms_number || '',
-    'Pages': a.article_last_page || '',
-    'Notes': a.notes_on_issue_building || ''
+    'Pages': a.article_last_page || ''
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Issue_Plan");
-  XLSX.writeFile(workbook, `Editorial_Plan_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Categorized_List");
+
+  XLSX.writeFile(
+    workbook,
+    `Categorized_Article_List_${new Date().toISOString().split('T')[0]}.xlsx`
+  );
 };
