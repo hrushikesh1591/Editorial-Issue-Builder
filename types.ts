@@ -21,7 +21,8 @@ export interface Article extends RawArticle {
   formattedDate: string;
   selected: boolean;
   downloaded: boolean;
-  topic: string; // New field for clinical categorization
+  topic: string; 
+  onlineFirstTimestamp?: number;
 }
 
 export interface Filters {
