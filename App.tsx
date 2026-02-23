@@ -82,7 +82,7 @@ const App: React.FC = () => {
     });
   }, [articles, filters]);
 
-  const selectedArticles = useMemo(() => articles.filter(a => a.selected), [articles]);
+  const queueArticles = useMemo(() => articles.filter(a => a.selected || a.downloaded), [articles]);
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
@@ -108,7 +108,7 @@ const App: React.FC = () => {
                 <div className="flex space-x-1 bg-slate-200 p-1 rounded-lg">
                   <TabButton active={activeTab === 'table'} onClick={() => setActiveTab('table')} label="Table" icon="fa-table" />
                   <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} label="Dashboard" icon="fa-chart-pie" />
-                  <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')} label="Queue" icon="fa-cloud-download-alt" badge={selectedArticles.length} />
+                  <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')} label="Queue" icon="fa-cloud-download-alt" badge={queueArticles.length} />
                 </div>
                 {isCategorizing && (
                   <div className="text-xs font-bold text-slate-500 animate-pulse flex items-center">
@@ -121,7 +121,7 @@ const App: React.FC = () => {
                 <ArticleTable articles={filteredArticles} onToggleSelect={toggleArticleSelection} onToggleDownloaded={toggleArticleDownloaded} onUpdateTopic={updateArticleTopic} />
               )}
               {activeTab === 'dashboard' && <Dashboard articles={articles} />}
-              {activeTab === 'queue' && <DownloadQueue selectedArticles={selectedArticles} onToggleDownloaded={toggleArticleDownloaded} />}
+              {activeTab === 'queue' && <DownloadQueue selectedArticles={queueArticles} onToggleDownloaded={toggleArticleDownloaded} />}
             </>
           )}
         </div>
