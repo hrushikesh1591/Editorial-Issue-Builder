@@ -21,7 +21,7 @@ const DownloadQueue: React.FC<DownloadQueueProps> = ({ selectedArticles, onToggl
         <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-4 border-2 border-dashed border-slate-100 rounded-xl">
           <i className="fas fa-list-check text-4xl opacity-20"></i>
           <p className="text-lg">Your queue is empty.</p>
-          <p className="text-sm">Go to 'Curation Table' and select articles to add them here.</p>
+          <p className="text-sm">Go to 'Table' and select articles or mark them for download to add them here.</p>
         </div>
       ) : (
         <div className="grid gap-4">
