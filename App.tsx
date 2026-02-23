@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Article, Filters } from './types';
+import { Article, Filters, SURGICAL_TOPICS } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -9,13 +9,28 @@ import FileUploader from './components/FileUploader';
 import { processRawData, exportToExcel, exportCategorizedSheet } from './utils/dataUtils';
 import { categorizeArticles } from './utils/aiUtils';
 
-const App: React.FC = () => {
+const TabButton: React.FC<{ active: boolean; onClick: () => void; label: string; icon: string; badge?: number }> = ({ active, onClick, label, icon, badge }) => (
+  <button 
+    onClick={onClick}
+    className={`px-5 py-2 rounded-md text-sm font-semibold transition-all flex items-center space-x-2 ${
+      active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+    }`}
+  >
+    <i className={`fas ${icon}`}></i>
+    <span>{label}</span>
+    {badge !== undefined && badge > 0 && (
+      <span className="bg-slate-900 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full ml-1 animate-pulse">
+        {badge}
+      </span>
+    )}
+  </button>
+);
 
+const App: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const [isCategorizationDone, setIsCategorizationDone] = useState(false);
+  const [isCategorizationDone, setIsCategorizationDone] = useState(false); // ✅ NEW
   const [activeTab, setActiveTab] = useState<'table' | 'dashboard' | 'queue'>('table');
-
   const [filters, setFilters] = useState<Filters>({
     rubrics: [],
     productionStates: [],
@@ -25,36 +40,28 @@ const App: React.FC = () => {
 
   const handleFileUpload = async (data: any[]) => {
     const processed = processRawData(data);
-
     setArticles(processed.map(a => ({ ...a, topic: 'Analyzing...' })));
 
     setIsCategorizing(true);
-    setIsCategorizationDone(false);
+    setIsCategorizationDone(false); // ✅ reset
 
     try {
       const titles = processed.map(a => a.article_title);
       const topicMap = await categorizeArticles(titles);
 
-      setArticles(current =>
-        current.map(art => ({
-          ...art,
-          topic: topicMap[art.article_title] || 'General Oral Surgery'
-        }))
-      );
-
+      setArticles(current => current.map(art => ({
+        ...art,
+        topic: topicMap[art.article_title] || 'General Oral Surgery'
+      })));
     } catch (err) {
       console.error("Categorization failed", err);
-
-      setArticles(current =>
-        current.map(art => ({
-          ...art,
-          topic: art.topic === 'Analyzing...' ? 'General Oral Surgery' : art.topic
-        }))
-      );
-
+      setArticles(current => current.map(art => ({
+        ...art,
+        topic: art.topic === 'Analyzing...' ? 'General Oral Surgery' : art.topic
+      })));
     } finally {
       setIsCategorizing(false);
-      setIsCategorizationDone(true);
+      setIsCategorizationDone(true); // ✅ mark done
     }
   };
 
@@ -75,7 +82,7 @@ const App: React.FC = () => {
       const rubricMatch = filters.rubrics.length === 0 || filters.rubrics.includes(article.rubric);
       const stateMatch = filters.productionStates.length === 0 || filters.productionStates.includes(article.production_state);
       const topicMatch = filters.topics.length === 0 || filters.topics.includes(article.topic);
-
+      
       let dateMatch = true;
       if (filters.dateRange[0] || filters.dateRange[1]) {
         if (!article.onlineFirstTimestamp) {
@@ -83,13 +90,13 @@ const App: React.FC = () => {
         } else {
           const articleDate = new Date(article.onlineFirstTimestamp);
           articleDate.setHours(0, 0, 0, 0);
-
+          
           if (filters.dateRange[0]) {
             const startDate = new Date(filters.dateRange[0]);
             startDate.setHours(0, 0, 0, 0);
             if (articleDate < startDate) dateMatch = false;
           }
-
+          
           if (filters.dateRange[1]) {
             const endDate = new Date(filters.dateRange[1]);
             endDate.setHours(23, 59, 59, 999);
@@ -106,23 +113,20 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-
       {articles.length > 0 && (
-        <Sidebar
-          articles={articles}
-          filters={filters}
-          setFilters={setFilters}
+        <Sidebar 
+          articles={articles} 
+          filters={filters} 
+          setFilters={setFilters} 
           onExport={() => exportToExcel(articles)}
-          onExportCategorized={() => exportCategorizedSheet(articles)}
-          isCategorizationDone={isCategorizationDone}
+          onExportCategorized={() => exportCategorizedSheet(articles)}  // ✅ NEW
+          isCategorizationDone={isCategorizationDone}                  // ✅ NEW
         />
       )}
 
       <main className="flex-1 flex flex-col min-w-0">
         <Header />
-
         <div className="p-8 flex-1 max-w-[1600px] mx-auto w-full">
-
           {articles.length === 0 ? (
             <div className="h-[75vh] flex items-center justify-center">
               <FileUploader onDataLoaded={handleFileUpload} />
@@ -130,31 +134,35 @@ const App: React.FC = () => {
           ) : (
             <>
               <div className="flex items-center justify-between mb-8">
-
                 <div className="flex space-x-1 bg-slate-200 p-1 rounded-lg">
-                  <button onClick={() => setActiveTab('table')} className="px-5 py-2 rounded-md text-sm font-semibold bg-white shadow-sm">
-                    <i className="fas fa-table mr-2"></i>Table
-                  </button>
+                  <TabButton active={activeTab === 'table'} onClick={() => setActiveTab('table')} label="Table" icon="fa-table" />
+                  <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} label="Dashboard" icon="fa-chart-pie" />
+                  <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')} label="Queue" icon="fa-cloud-download-alt" badge={queueArticles.length} />
                 </div>
-
                 {isCategorizing && (
                   <div className="text-xs font-bold text-slate-500 animate-pulse flex items-center">
                     <i className="fas fa-magic mr-2"></i> AI Sorting clinical domains...
                   </div>
                 )}
-
               </div>
 
-              <ArticleTable
-                articles={filteredArticles}
-                onToggleSelect={toggleArticleSelection}
-                onToggleDownloaded={toggleArticleDownloaded}
-                onUpdateTopic={updateArticleTopic}
-              />
-
+              {activeTab === 'table' && (
+                <ArticleTable 
+                  articles={filteredArticles} 
+                  onToggleSelect={toggleArticleSelection} 
+                  onToggleDownloaded={toggleArticleDownloaded} 
+                  onUpdateTopic={updateArticleTopic} 
+                />
+              )}
+              {activeTab === 'dashboard' && <Dashboard articles={articles} />}
+              {activeTab === 'queue' && (
+                <DownloadQueue 
+                  selectedArticles={queueArticles} 
+                  onToggleDownloaded={toggleArticleDownloaded} 
+                />
+              )}
             </>
           )}
-
         </div>
       </main>
     </div>
